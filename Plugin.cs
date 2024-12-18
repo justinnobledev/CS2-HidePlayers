@@ -10,7 +10,7 @@ public sealed class Plugin : BasePlugin, IPluginConfig<PluginConfig>
 {
     public override string ModuleName => "HidePlayers";
     public override string ModuleAuthor => "xstage";
-    public override string ModuleVersion => "1.0.4";
+    public override string ModuleVersion => "1.1.1";
     public override string ModuleDescription => "Plugin uses code borrowed from CS2Fixes / cs2kz-metamod / hl2sdk";
 
     public PluginConfig Config { get; set; } = new();
@@ -21,6 +21,16 @@ public sealed class Plugin : BasePlugin, IPluginConfig<PluginConfig>
 
     private static readonly MemoryFunctionVoid<nint, nint, int, nint, nint, nint, int, bool> CheckTransmit = new(GameData.GetSignature("CheckTransmit"));
     private static readonly MemoryFunctionVoid<CCSPlayerPawn, CSPlayerState> StateTransition = new(GameData.GetSignature("StateTransition"));
+    
+    private static int _checkTransmitPlayerSlotCache = GameData.GetOffset("CheckTransmitPlayerSlot");
+
+    public enum HideMode {
+        HIDE_ALL,
+        HIDE_TEAM,
+        HIDE_ENEMY
+    }
+    
+    private HideMode _hideMode = HideMode.HIDE_ALL;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct CCheckTransmitInfo
@@ -68,10 +78,12 @@ public sealed class Plugin : BasePlugin, IPluginConfig<PluginConfig>
             return HookResult.Continue;
         });
 
-        AddCommand(Config.Command, "Hide players models", (player, info) =>
-        {
-            player?.PrintToChat(Localizer["Player.Hide", Localizer["Plugin.Tag"], (_hide[player.Index] ^= true) ? Localizer["Plugin.Enable"] : Localizer["Plugin.Disable"]]);
-        });
+        foreach (var cmd in Config.Command.Split(",")) {
+            AddCommand(cmd, "Hide players models", (player, info) =>
+            {
+                player?.PrintToChat(Localizer["Player.Hide", Localizer["Plugin.Tag"], Localizer[(_hide[player.Index] ^= true) ? "Plugin.Enable" : "Plugin.Disable"]]);
+            });
+        }
     }
 
     public override void Unload(bool hotReload)
@@ -95,10 +107,13 @@ public sealed class Plugin : BasePlugin, IPluginConfig<PluginConfig>
         nint* ppInfoList = (nint*)hook.GetParam<nint>(1);
         int infoCount = hook.GetParam<int>(2);
 
+        var candidates =
+            Utilities.GetPlayers().Where(p => !p.IsHLTV).ToList();
+
         for (int i = 0; i < infoCount; i++)
         {
             nint pInfo = ppInfoList[i];
-            byte slot = *(byte*)(pInfo + GameData.GetOffset("CheckTransmitPlayerSlot"));
+            byte slot = *(byte*)(pInfo + _checkTransmitPlayerSlotCache);
 
             var player = Utilities.GetPlayerFromSlot(slot);
             var info = Marshal.PtrToStructure<CCheckTransmitInfo>(pInfo);
@@ -106,29 +121,34 @@ public sealed class Plugin : BasePlugin, IPluginConfig<PluginConfig>
             if (player == null || player.Connected != PlayerConnectedState.PlayerConnected)
                 continue;
 
-            foreach (var target in Utilities.GetPlayers())
+            if (player.Pawn.Value?.As<CCSPlayerPawnBase>().PlayerState == CSPlayerState.STATE_OBSERVER_MODE)
+                continue;
+            
+            foreach (var target in candidates)
             {
-                if (target == null || target.IsHLTV || target.Slot == slot)
+                if (target.Slot == slot)
                     continue;
 
                 var pawn = target.PlayerPawn.Value!;
 
-                if (player.Pawn.Value?.As<CCSPlayerPawnBase>().PlayerState == CSPlayerState.STATE_OBSERVER_MODE)
-                    continue;
-                
-                if (pawn == null)
-                    continue;
-                
                 if ((LifeState_t)pawn.LifeState != LifeState_t.LIFE_ALIVE)
                 {
                     info.m_pTransmitEntity.Clear((int)pawn.Index);
                     continue;
                 }
 
-                if (_hide[player.Index] && (Config.Hidden.Equals("@enemy") && player.Team != target.Team || Config.Hidden.Equals("@team") && player.Team == target.Team || Config.Hidden.Equals("@all")))
-                {
-                    info.m_pTransmitEntity.Clear((int)pawn.Index);
+                switch (_hideMode) {
+                    case HideMode.HIDE_ALL when _hide[player.Index]:
+                        break;
+                    case HideMode.HIDE_TEAM when _hide[player.Index] && player.Team == target.Team:
+                        break;
+                    case HideMode.HIDE_ENEMY when _hide[player.Index] && player.Team != target.Team:
+                        break;
+                    default:
+                        continue;
                 }
+
+                info.m_pTransmitEntity.Clear((int)pawn.Index);
             }
         }
 
@@ -163,5 +183,18 @@ public sealed class Plugin : BasePlugin, IPluginConfig<PluginConfig>
         }
         
         Config = config;
+        
+        _hideMode = GetHideMode(Config.Hidden);
+    }
+    
+    private HideMode GetHideMode(string mode)
+    {
+        return mode switch
+        {
+            "@all" => HideMode.HIDE_ALL,
+            "@team" => HideMode.HIDE_TEAM,
+            "@enemy" => HideMode.HIDE_ENEMY,
+            _ => HideMode.HIDE_ALL
+        };
     }
 }
