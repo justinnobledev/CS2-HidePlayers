@@ -1,6 +1,4 @@
 # CS2-HidePlayers
-
-## Description
 Allows you to hide player models.
 
 ## Requirments
@@ -14,10 +12,11 @@ Allows you to hide player models.
 - Restart your server.
 
 ## Configuration
+`css_hide_reload` - Reload configuration
 ```json
 {
-  "Command": "css_hidemodels", // Command switch
-  "Hidden": "@all", // Which players are hiding. Values: @all / @team / @enemy
-  "Version": 1
+    "cmds": "css_hidemodels;css_hide",
+    "who_hidden": "@all",
+    "ConfigVersion": 3
 }
 ```
