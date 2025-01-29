@@ -18,20 +18,20 @@ public sealed class HideManager(IPluginContext pluginContext, PlayerManager play
         plugin_.RegisterListener<Listeners.CheckTransmit>(OnCheckTransmit);
 
         StateTransition.Hook(Hook_StateTransition, HookMode.Post);
-        VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Hook(OnTakeDamageOld, HookMode.Pre);
+        VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Hook(Hook_TakeDamageOld, HookMode.Pre);
     }
 
     public void Destroy()
     {
         StateTransition.Unhook(Hook_StateTransition, HookMode.Post);
-        VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Unhook(OnTakeDamageOld, HookMode.Pre);
+        VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Unhook(Hook_TakeDamageOld, HookMode.Pre);
     }
 
-    private HookResult OnTakeDamageOld(DynamicHook hook)
+    private HookResult Hook_TakeDamageOld(DynamicHook hook)
     {
         var info = hook.GetParam<CTakeDamageInfo>(1);
 
-        info.DamageFlags = TakeDamageFlags_t.DFLAG_NONE;
+        info.DamageFlags &= ~TakeDamageFlags_t.DFLAG_FORCE_DEATH;
 
         return HookResult.Changed;
     }
@@ -51,7 +51,7 @@ public sealed class HideManager(IPluginContext pluginContext, PlayerManager play
 
                 if (targetPawn == null) continue;
 
-                if (targetPawn.LifeState == (byte)LifeState_t.LIFE_ALIVE)
+                if (targetPawn.LifeState != (byte)LifeState_t.LIFE_DEAD || targetPawn.LifeState != (byte)LifeState_t.LIFE_DYING)
                 {
                     if (target.Slot == player.Slot) continue;
 
