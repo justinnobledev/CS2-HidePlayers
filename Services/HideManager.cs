@@ -1,5 +1,6 @@
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Plugin;
+using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
 
 namespace HidePlayers;
@@ -15,11 +16,25 @@ public sealed class HideManager(IPluginContext pluginContext, PlayerManager play
         plugin_ = (pluginContext.Plugin as Plugin)!;
 
         plugin_.RegisterListener<Listeners.CheckTransmit>(OnCheckTransmit);
+
         StateTransition.Hook(Hook_StateTransition, HookMode.Post);
+        VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Hook(OnTakeDamageOld, HookMode.Pre);
     }
 
-    public void Destroy() =>
+    public void Destroy()
+    {
         StateTransition.Unhook(Hook_StateTransition, HookMode.Post);
+        VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Unhook(OnTakeDamageOld, HookMode.Pre);
+    }
+
+    private HookResult OnTakeDamageOld(DynamicHook hook)
+    {
+        var info = hook.GetParam<CTakeDamageInfo>(1);
+
+        info.DamageFlags = TakeDamageFlags_t.DFLAG_NONE;
+
+        return HookResult.Changed;
+    }
 
     private void OnCheckTransmit(CCheckTransmitInfoList infoList)
     {
@@ -27,15 +42,21 @@ public sealed class HideManager(IPluginContext pluginContext, PlayerManager play
 
         foreach (var (info, player) in infoList)
         {
-            if (player == null || player.Connected != PlayerConnectedState.PlayerConnected || !playerManager.TryGetValue(player, out Player? data)) continue;
-
-            if (player.Pawn.Value?.As<CCSPlayerPawnBase>().PlayerState == CSPlayerState.STATE_OBSERVER_MODE) continue;
+            if (player == null || player.Connected != PlayerConnectedState.PlayerConnected || !playerManager.TryGetValue(player, out Player? data))
+                continue;
 
             foreach (var target in targets)
             {
                 var targetPawn = target.PlayerPawn.Value;
 
-                if (targetPawn == null || target.Slot == player.Slot) continue;
+                if (targetPawn == null) continue;
+
+                if (targetPawn.LifeState == (byte)LifeState_t.LIFE_ALIVE)
+                {
+                    if (target.Slot == player.Slot) continue;
+
+                    if (player.Pawn.Value?.As<CCSPlayerPawnBase>().PlayerState == CSPlayerState.STATE_OBSERVER_MODE) continue;
+                }
 
                 if (targetPawn.LifeState != (byte)LifeState_t.LIFE_ALIVE || data.isEnableHide && (plugin_.Config.Mode == HideMode.All || 
                 plugin_.Config.Mode == HideMode.Team && player.Team == target.Team || plugin_.Config.Mode == HideMode.Enemy && player.Team != target.Team))
