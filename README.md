@@ -16,7 +16,7 @@ Allows you to hide player models.
 ```json
 {
     "cmds": "css_hidemodels;css_hide",
-    "who_hidden": "@all",
+    "who_hidden": "@all", // @all / @team / @enemy
     "ConfigVersion": 3
 }
 ```
