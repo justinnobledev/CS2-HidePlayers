@@ -6,7 +6,7 @@ public sealed partial class Plugin(PlayerManager playerManager, HideManager hide
 {
     public override string ModuleName { get; } = "HidePlayers";
     public override string ModuleAuthor { get; } = "xstage";
-    public override string ModuleVersion { get; } = "1.2.3";
+    public override string ModuleVersion { get; } = "1.2.4";
 
     public override void Load(bool hotReload)
     {

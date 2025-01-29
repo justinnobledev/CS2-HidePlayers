@@ -17,23 +17,36 @@ public sealed class HideManager(IPluginContext pluginContext, PlayerManager play
 
         plugin_.RegisterListener<Listeners.CheckTransmit>(OnCheckTransmit);
 
-        StateTransition.Hook(Hook_StateTransition, HookMode.Post);
+        StateTransition.Hook(Hook_StateTransitionPre, HookMode.Pre);
         VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Hook(Hook_TakeDamageOld, HookMode.Pre);
     }
 
     public void Destroy()
     {
-        StateTransition.Unhook(Hook_StateTransition, HookMode.Post);
+        StateTransition.Unhook(Hook_StateTransitionPre, HookMode.Pre);
         VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Unhook(Hook_TakeDamageOld, HookMode.Pre);
     }
 
     private HookResult Hook_TakeDamageOld(DynamicHook hook)
     {
+        var victim = hook.GetParam<CEntityInstance>(0);
         var info = hook.GetParam<CTakeDamageInfo>(1);
 
-        info.DamageFlags &= ~TakeDamageFlags_t.DFLAG_FORCE_DEATH;
+        if (victim.DesignerName != "player") return HookResult.Continue;
 
-        return HookResult.Changed;
+        var pawn = victim.As<CCSPlayerPawn>();
+
+        if (pawn == null || !pawn.IsValid) return HookResult.Continue;
+
+        if (info.DamageFlags.HasFlag(TakeDamageFlags_t.DFLAG_FORCE_DEATH))
+        {
+            info.DamageFlags &= ~TakeDamageFlags_t.DFLAG_FORCE_DEATH;
+            StateTransition.Invoke(pawn, CSPlayerState.STATE_WELCOME);
+
+            return HookResult.Changed;
+        }
+
+        return HookResult.Continue;
     }
 
     private void OnCheckTransmit(CCheckTransmitInfoList infoList)
@@ -67,22 +80,19 @@ public sealed class HideManager(IPluginContext pluginContext, PlayerManager play
         }
     }
 
-    private HookResult Hook_StateTransition(DynamicHook hook)
+    private HookResult Hook_StateTransitionPre(DynamicHook hook)
     {
         var player = hook.GetParam<CCSPlayerPawn>(0).OriginalController.Value;
         var state = hook.GetParam<CSPlayerState>(1);
 
         if (player == null || !playerManager.TryGetValue(player, out Player? data)) return HookResult.Continue;
 
-        if (state != data.oldPlayerState)
-        {
-            if (state == CSPlayerState.STATE_OBSERVER_MODE || data.oldPlayerState == CSPlayerState.STATE_OBSERVER_MODE)
-            {
-                Plugin.ForceFullUpdate(player);
-            }
-        }
+        var oldPlayerState = player.Pawn.Value?.As<CCSPlayerPawnBase>().PlayerState;
 
-        data.oldPlayerState = state;
+        if (state != oldPlayerState)
+        {
+            Plugin.ForceFullUpdate(player);
+        }
 
         return HookResult.Continue;
     }
