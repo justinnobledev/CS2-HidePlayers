@@ -33,9 +33,7 @@ public sealed class CommandManager(ILogger<CommandManager> logger, IPluginContex
     {
         try
         {
-            plugin_.Config.Update();
             plugin_.Config.Reload();
-
             plugin_.Config.Mode = plugin_.ParseHideMode(plugin_.Config.WhoHidden);
 
             commandInfo.ReplyToCommand($"[{plugin_.ModuleName}] You have successfully reloaded the config.");
