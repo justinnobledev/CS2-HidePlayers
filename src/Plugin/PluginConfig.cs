@@ -17,4 +17,12 @@ public sealed partial class Plugin : IPluginConfig<PluginConfig>
         Config = config;
         config.Mode = ParseHideMode(config.WhoHidden);
     }
+
+    public HideMode ParseHideMode(string hideMode) => hideMode switch
+    {
+        "@all" => HideMode.All,
+        "@team" => HideMode.Team,
+        "@enemy" => HideMode.Enemy,
+        _ => HideMode.All
+    };
 }

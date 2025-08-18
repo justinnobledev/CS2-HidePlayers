@@ -3,10 +3,10 @@ Allows you to hide player models.
 
 ## Requirments
 - [CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp/)
+- [Clientprefs](https://github.com/Cruze03/Clientprefs/)
 
 ## Installation
 - Download the newest release from [Releases](https://github.com/qstage/CS2-HidePlayers/releases)
-- Move the /gamedata folder to a folder /counterstrikesharp
 - Make a folder in /plugins named /HidePlayers.
 - Put the plugin files in to the new folder.
 - Restart your server.

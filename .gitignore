@@ -1,4 +1,4 @@
 .editorconfig
-obj
-bin
-*.sln
+obj/
+bin/
+.*/
