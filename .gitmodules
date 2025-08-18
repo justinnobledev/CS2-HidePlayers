@@ -1,0 +1,3 @@
+[submodule "vendor/Clientprefs"]
+	path = vendor/Clientprefs
+	url = https://github.com/Cruze03/Clientprefs.git
