@@ -42,7 +42,7 @@ public sealed class PlayerManager(IPluginContext pluginContext) : Dictionary<int
         }
         else
         {
-            if (!player.IsBot)
+            if (!player.IsBot && _plugin.cookieId != -1)
             {
                 _plugin.cookieApi.SetPlayerCookie(player, _plugin.cookieId, base[slot].ToString());
             }

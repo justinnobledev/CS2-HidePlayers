@@ -9,7 +9,7 @@ public sealed partial class Plugin(PlayerManager playerManager, HideManager hide
 {
     public override string ModuleName { get; } = "HidePlayers";
     public override string ModuleAuthor { get; } = "xstage";
-    public override string ModuleVersion { get; } = "1.3.0";
+    public override string ModuleVersion { get; } = "1.3.1";
 
     private readonly static PluginCapability<IClientprefsApi> PluginCapability = new("Clientprefs");
 
@@ -48,6 +48,6 @@ public sealed partial class Plugin(PlayerManager playerManager, HideManager hide
     {
         if (cookieId == -1) return;
 
-        playerManager[player.Slot] = bool.Parse(cookieApi.GetPlayerCookie(player, cookieId));
+        playerManager[player.Slot] = bool.TryParse(cookieApi.GetPlayerCookie(player, cookieId), out var parsed) && parsed;
     }
 }
