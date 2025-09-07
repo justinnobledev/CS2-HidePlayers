@@ -25,7 +25,7 @@ public sealed class PlayerManager(IPluginContext pluginContext) : Dictionary<int
         {
             foreach (var player in Utilities.GetPlayers())
             {
-                TryAdd(player.Slot, default);
+                this.AddPlayer(player);
             }
         }
     }
@@ -38,7 +38,7 @@ public sealed class PlayerManager(IPluginContext pluginContext) : Dictionary<int
 
         if (action == Action.Connect)
         {
-            Add(slot, default);
+            this.AddPlayer(player);
         }
         else
         {
@@ -47,7 +47,10 @@ public sealed class PlayerManager(IPluginContext pluginContext) : Dictionary<int
                 _plugin.cookieApi.SetPlayerCookie(player, _plugin.cookieId, base[slot].ToString());
             }
 
-            Remove(slot);
+            this.RemovePlayer(player);
         }
     }
+
+    public bool AddPlayer(CCSPlayerController player, bool value = default) => base.TryAdd(player.Slot, value);
+    public bool RemovePlayer(CCSPlayerController player) => base.Remove(player.Slot);
 }

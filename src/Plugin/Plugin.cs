@@ -9,7 +9,7 @@ public sealed partial class Plugin(PlayerManager playerManager, HideManager hide
 {
     public override string ModuleName { get; } = "HidePlayers";
     public override string ModuleAuthor { get; } = "xstage";
-    public override string ModuleVersion { get; } = "1.3.1";
+    public override string ModuleVersion { get; } = "1.3.2";
 
     private readonly static PluginCapability<IClientprefsApi> PluginCapability = new("Clientprefs");
 
