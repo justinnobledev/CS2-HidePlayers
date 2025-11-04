@@ -1,4 +1,5 @@
 ﻿using Clientprefs.API;
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Capabilities;
 using Microsoft.Extensions.Logging;
@@ -29,6 +30,18 @@ public sealed partial class Plugin(PlayerManager playerManager, HideManager hide
 
         cookieApi.OnDatabaseLoaded += OnDatabaseLoaded;
         cookieApi.OnPlayerCookiesCached += OnPlayerCookiesCached;
+
+        if (!hotReload) return;
+        
+        foreach (var player in Utilities.GetPlayers().Where(p => !p.IsBot))
+        {
+            if(!playerManager.ContainsKey(player.Slot))
+                playerManager.AddPlayer(player);
+            
+            if (!cookieApi.ArePlayerCookiesCached(player)) continue;
+                
+            playerManager[player.Slot] = bool.TryParse(cookieApi.GetPlayerCookie(player, cookieId), out var parsed) && parsed;
+        }
     }
 
     public override void Unload(bool hotReload)
