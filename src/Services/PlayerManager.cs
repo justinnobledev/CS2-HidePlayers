@@ -44,7 +44,7 @@ public sealed class PlayerManager(IPluginContext pluginContext) : Dictionary<int
         {
             if (!player.IsBot && _plugin.cookieId != -1 && ContainsKey(slot))
             {
-                _plugin.cookieApi.SetPlayerCookie(player, _plugin.cookieId, base[slot].ToString());
+                _plugin.cookieApi.SetPlayerCookie(player.SteamID.ToString(), _plugin.cookieId, base[slot].ToString());
             }
 
             this.RemovePlayer(player);
